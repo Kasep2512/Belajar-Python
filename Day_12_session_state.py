@@ -1,4 +1,4 @@
-# Day 12: Session State & Form Input Dinamis
+# Day 12: Session State & Interaksi Langsung (Toggle & Hapus)
 import streamlit as st
 
 st.set_page_config(page_title="Modul Tracker Dinamis", page_icon="📝", layout="centered")
@@ -20,7 +20,7 @@ if "daftar_modul" not in st.session_state:
     ]
 
 st.title("📝 Tracker Modul Interaktif")
-st.caption("Kelola dan tambahkan materi belajar secara dinamis")
+st.caption("Kelola, ubah status, dan hapus materi secara langsung")
 
 with st.expander("➕ Tambah Modul Baru"):
     with st.form("form_tambah_modul", clear_on_submit=True):
@@ -31,15 +31,15 @@ with st.expander("➕ Tambah Modul Baru"):
 
         if tombol_simpan:
             if topik_baru.strip() != "":
-                nomor_hari_berikutnya = len(st.session_state.daftar_modul) + 1
+                nomor_hari_baru = max([m["hari"] for m in st.session_state.daftar_modul], default=0) + 1
                 modul_baru = {
-                    "hari": nomor_hari_berikutnya,
+                    "hari": nomor_hari_baru,
                     "topik": topik_baru.strip(),
                     "kategori": kategori_baru,
                     "selesai": status_baru,
                 }
                 st.session_state.daftar_modul.append(modul_baru)
-                st.success(f"Modul Hari ke-{nomor_hari_berikutnya} berhasil ditambahkan!")
+                st.success(f"Modul Hari ke-{nomor_hari_baru} berhasil ditambahin!")
                 st.rerun()
             else:
                 st.error("Nama topik materi nggak boleh kosong.")
@@ -66,15 +66,38 @@ st.divider()
 total_modul = len(st.session_state.daftar_modul)
 total_selesai = sum(1 for item in st.session_state.daftar_modul if item["selesai"])
 
-col_metrik1, col_metrik2 = st.columns(2)
-col_metrik1.metric("Progres Selesai", f"{total_selesai}/{total_modul}")
-col_metrik2.metric("Hasil Tampil", f"{len(data_terfilter)} modul")
+col_m1, col_m2 = st.columns(2)
+col_m1.metric("Progres Selesai", f"{total_selesai}/{total_modul}")
+col_m2.metric("Hasil Tampil", f"{len(data_terfilter)} modul")
 
 st.subheader("Daftar Materi")
 if not data_terfilter:
     st.warning("Nggak ada modul yang cocok dengan filter.")
 else:
     for item in data_terfilter:
-        label = "✅ Selesai" if item["selesai"] else "⏳ Belum Selesai"
-        st.markdown(f"**H-{item['hari']} | {item['topik']}**  \nKategori: `{item['kategori']}` — *Status:* **{label}**")
+        c_check, c_text, c_del = st.columns([0.6, 4, 0.6])
+
+        with c_check:
+            status_centang = st.checkbox(
+                "",
+                value=item["selesai"],
+                key=f"chk_{item['hari']}",
+                label_visibility="collapsed",
+            )
+            if status_centang != item["selesai"]:
+                item["selesai"] = status_centang
+                st.rerun()
+
+        with c_text:
+            label_status = "✅ Selesai" if item["selesai"] else "⏳ Belum Selesai"
+            st.markdown(
+                f"**H-{item['hari']} | {item['topik']}**  \n"
+                f"Kategori: `{item['kategori']}` — *Status:* **{label_status}**"
+            )
+
+        with c_del:
+            if st.button("🗑️", key=f"del_{item['hari']}"):
+                st.session_state.daftar_modul = [m for m in st.session_state.daftar_modul if m["hari"] != item["hari"]]
+                st.rerun()
+
         st.write("---")
