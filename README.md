@@ -1,6 +1,6 @@
 # 🎓 Academic Evaluation Dashboard
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io)
+[![Streamlit App](https://academic-dashboard-gunadarma.streamlit.app)](https://academic-dashboard-gunadarma.streamlit.app)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![Database](https://img.shields.io/badge/SQLite-Integrated-lightgrey.svg)](https://sqlite.org/)
 [![Tests](https://img.shields.io/badge/pytest-Passing-brightgreen.svg)](https://docs.pytest.org/)
@@ -11,7 +11,7 @@ Aplikasi web analitik akademik berbasis Python dan Streamlit yang mengotomatisas
 
 ## 🚀 Live Demo
 Aplikasi sudah dipublikasikan secara online dan bisa diakses langsung:  
-👉 **[Buka Academic Evaluation Dashboard](https://share.streamlit.io)** *(Ganti tautan ini dengan URL Streamlit Cloud kamu)*
+👉 **[Buka Academic Evaluation Dashboard](https://academic-dashboard-gunadarma.streamlit.app)** *(https://academic-dashboard-gunadarma.streamlit.app)*
 
 ---
 
