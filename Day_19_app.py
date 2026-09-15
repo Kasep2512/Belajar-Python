@@ -193,12 +193,19 @@ def konversi_ke_excel(df: pd.DataFrame) -> bytes:
     output = io.BytesIO()
 
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        df.to_excel(writer, index=False, sheet_name="Transkrip_Nilai")
-        workbook = writer.book
-        worksheet = writer.sheets["Transkrip_Nilai"]
+        # Sheet rekap gabungan seluruh nilai
+        df.to_excel(writer, index=False, sheet_name="Semua Nilai")
 
-        # Definisi Palet Warna & Gaya
-        header_fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")  # Navy elegan
+        # sheet terpisah per semester
+        daftar_semester = sorted(df["semester"].unique())
+        for sem in daftar_semester:
+            df_sem = df[df["semester"] == sem]
+            df_sem.to_excel(writer, index=False, sheet_name=f"Semester {sem}")
+
+        workbook = writer.book
+
+        # Palet Warna & Format
+        header_fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
         header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
         data_font = Font(name="Calibri", size=10)
         border_tipis = Border(
@@ -210,41 +217,43 @@ def konversi_ke_excel(df: pd.DataFrame) -> bytes:
         align_center = Alignment(horizontal="center", vertical="center")
         align_left = Alignment(horizontal="left", vertical="center")
 
-        # Format Baris Header
-        for col_num in range(1, len(df.columns) + 1):
-            cell = worksheet.cell(row=1, column=col_num)
-            cell.fill = header_fill
-            cell.font = header_font
-            cell.alignment = align_center
-            cell.border = border_tipis
-        worksheet.row_dimensions[1].height = 25
+        # styling rapi ke seluruh worksheet
+        for sheetname in workbook.sheetnames:
+            worksheet = workbook[sheetname]
 
-        # Format Sel Data & Alignment
-        for row_idx, row in enumerate(
-            worksheet.iter_rows(min_row=2, max_row=len(df) + 1, min_col=1, max_col=len(df.columns)), start=2
-        ):
-            worksheet.row_dimensions[row_idx].height = 20
-            # Zebra striping: baris genap diberi latar abu-abu sangat muda
-            bg_color = "F9FAFB" if row_idx % 2 == 0 else "FFFFFF"
-            row_fill = PatternFill(start_color=bg_color, end_color=bg_color, fill_type="solid")
-
-            for col_idx, cell in enumerate(row, start=1):
-                cell.font = data_font
-                cell.fill = row_fill
+            # Format Baris Header
+            for col_num in range(1, worksheet.max_column + 1):
+                cell = worksheet.cell(row=1, column=col_num)
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = align_center
                 cell.border = border_tipis
+            worksheet.row_dimensions[1].height = 25
 
-                col_name = df.columns[col_idx - 1]
-                # Kolom teks panjang rata kiri, sisanya rata tengah
-                if col_name in ["mata_kuliah", "Nama Mata Kuliah"]:
-                    cell.alignment = align_left
-                else:
-                    cell.alignment = align_center
+            # Format Baris Data & Zebra Striping
+            for row_idx in range(2, worksheet.max_row + 1):
+                worksheet.row_dimensions[row_idx].height = 20
+                bg_color = "F9FAFB" if row_idx % 2 == 0 else "FFFFFF"
+                row_fill = PatternFill(start_color=bg_color, end_color=bg_color, fill_type="solid")
 
-        # Auto-fit Lebar Kolom
-        for col in worksheet.columns:
-            max_len = max(len(str(cell.value or "")) for cell in col)
-            col_letter = get_column_letter(col[0].column)
-            worksheet.column_dimensions[col_letter].width = max(max_len + 4, 12)
+                for col_idx in range(1, worksheet.max_column + 1):
+                    cell = worksheet.cell(row=row_idx, column=col_idx)
+                    cell.font = data_font
+                    cell.fill = row_fill
+                    cell.border = border_tipis
+
+                    # Kolom mata kuliah rata kiri, sisanya rata tengah
+                    header_val = str(worksheet.cell(row=1, column=col_idx).value or "").lower()
+                    if "mata" in header_val:
+                        cell.alignment = align_left
+                    else:
+                        cell.alignment = align_center
+
+            # Auto-fit Lebar Kolom
+            for col in worksheet.columns:
+                max_len = max(len(str(cell.value or "")) for cell in col)
+                col_letter = get_column_letter(col[0].column)
+                worksheet.column_dimensions[col_letter].width = max(max_len + 4, 12)
 
     return output.getvalue()
 
