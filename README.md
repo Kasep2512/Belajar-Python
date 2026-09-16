@@ -1,4 +1,5 @@
 # 🎓 Academic Evaluation Dashboard
+[![Python Tests CI](https://github.com/Kasep2512/Belajar-Python/actions/workflows/tests.yml/badge.svg)](https://github.com/Kasep2512/Belajar-Python/actions/workflows/tests.yml)
 
 [![Streamlit App](https://academic-dashboard-gunadarma.streamlit.app)](https://academic-dashboard-gunadarma.streamlit.app)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
