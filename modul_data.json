@@ -1,0 +1,80 @@
+[
+  {
+    "hari": 1,
+    "topik": "Instalasi Python 3.13",
+    "kategori": "Setup",
+    "selesai": true
+  },
+  {
+    "hari": 2,
+    "topik": "Setup VS Code & Ruff",
+    "kategori": "Setup",
+    "selesai": true
+  },
+  {
+    "hari": 3,
+    "topik": "Git Lokal & Identitas",
+    "kategori": "Git",
+    "selesai": true
+  },
+  {
+    "hari": 4,
+    "topik": "GitHub & .gitignore",
+    "kategori": "Git",
+    "selesai": true
+  },
+  {
+    "hari": 5,
+    "topik": "Virtual Environment",
+    "kategori": "Setup",
+    "selesai": true
+  },
+  {
+    "hari": 6,
+    "topik": "Tipe Data Primitif",
+    "kategori": "Dasar",
+    "selesai": true
+  },
+  {
+    "hari": 7,
+    "topik": "Koleksi List & Dict",
+    "kategori": "Dasar",
+    "selesai": true
+  },
+  {
+    "hari": 8,
+    "topik": "Alur Kontrol & Filtering",
+    "kategori": "Dasar",
+    "selesai": true
+  },
+  {
+    "hari": 9,
+    "topik": "Fungsi Modular State",
+    "kategori": "Dasar",
+    "selesai": true
+  },
+  {
+    "hari": 10,
+    "topik": "Pemodelan State Class",
+    "kategori": "OOP",
+    "selesai": true
+  },
+  {
+    "hari": 11,
+    "topik": "Aplikasi Web Pertama",
+    "kategori": "Web UI",
+    "selesai": true
+  },
+  {
+    "hari": 12,
+    "topik": "Session State & Form",
+    "kategori": "Web UI",
+    "selesai": true
+  },
+  {
+    "hari": 13,
+    "topik": "File I/O & JSON Storage",
+    "kategori": "File I/O",
+    "selesai": true
+  }
+]

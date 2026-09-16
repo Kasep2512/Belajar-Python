@@ -1,32 +1,9 @@
-# test_akademik.py - Unit Test Logika Evaluasi Akademik
+# test_akademik.py - Unit Test Terintegrasi dengan Modul
 import pytest
-
-BOBOT_MUTU = {"A": 4.0, "B": 3.0, "C": 2.0, "D": 1.0, "E": 0.0}
-
-
-def hitung_ipk(daftar_matkul: list[dict]) -> float:
-    """Helper kalkulasi IPK berbasis list mata kuliah."""
-    if not daftar_matkul:
-        return 0.0
-    total_sks = sum(m["sks"] for m in daftar_matkul)
-    if total_sks == 0:
-        return 0.0
-    total_mutu = sum(m["sks"] * BOBOT_MUTU.get(m["nilai"].upper(), 0.0) for m in daftar_matkul)
-    return round(total_mutu / total_sks, 2)
+from module.calculator import BOBOT_MUTU, hitung_ipk, tentukan_predikat
 
 
-def tentukan_predikat(ipk: float) -> str:
-    """Helper penentuan predikat kelulusan."""
-    if ipk >= 3.51:
-        return "CumLaude 🏆"
-    elif ipk >= 3.00:
-        return "Sangat Memuaskan ⭐"
-    elif ipk >= 2.75:
-        return "Memuaskan 👍"
-    return "Cukup ⚠️"
-
-
-def test_koversi_bobot_mutu():
+def test_konversi_bobot_mutu():
     assert BOBOT_MUTU["A"] == 4.0
     assert BOBOT_MUTU["B"] == 3.0
     assert BOBOT_MUTU["C"] == 2.0
@@ -36,9 +13,10 @@ def test_koversi_bobot_mutu():
 
 def test_hitung_ipk_valid():
     sample_matkul = [
-        {"mata_kuliah": "Algoritma 1", "sks": 3, "nilai": "B"},  # Mutu: 3 * 3 = 9
-        {"mata_kuliah": "Aritmatika 1", "sks": 2, "nilai": "A"},  # Mutu: 2 * 4 = 8
+        {"mata_kuliah": "Algoritma 1", "sks": 3, "nilai": "B"},  # Mutu: 9
+        {"mata_kuliah": "Matematika 1", "sks": 2, "nilai": "A"},  # Mutu: 8
     ]
+    # Total SKS = 5, Total Mutu = 17 -> 17 / 5 = 3.40
     assert hitung_ipk(sample_matkul) == 3.40
 
 
