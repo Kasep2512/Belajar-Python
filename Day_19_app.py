@@ -1,15 +1,12 @@
-# Day 21 pada app.py - Academic Evaluation Dashboard (Modular Architecture)
+# app.py - Academic Evaluation Dashboard (Client-Server Architecture)
+import pandas as pd
+import requests
 import streamlit as st
 
 from module.calculator import tentukan_predikat
-from module.database import (
-    ambil_data_nilai,
-    ambil_profil,
-    simpan_hasil_ekstraksi,
-    update_nilai_matkul,
-)
 from module.exporter import konversi_ke_excel
-from module.parser import proses_dokumen_pdf
+
+API_BASE_URL = "http://127.0.0.1:8000"
 
 st.set_page_config(
     page_title="Academic Evaluation Dashboard",
@@ -18,49 +15,62 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-
+# SideBar : Upload & FastAPI
 with st.sidebar:
     st.header("📂 Sumber Dokumen")
     berkas_pdf = st.file_uploader("Unggah PDF Transkrip / Rangkuman Nilai", type=["pdf"])
 
     if berkas_pdf:
-        with st.spinner("Mengekstrak data dokumen..."):
-            profil_ekstrak, nilai_ekstrak = proses_dokumen_pdf(berkas_pdf)
-            if nilai_ekstrak:
-                simpan_hasil_ekstraksi(profil_ekstrak, nilai_ekstrak)
-                st.sidebar.success(f"Berhasil mengimpor {len(nilai_ekstrak)} mata kuliah!")
-            else:
-                st.sidebar.error("Gagal mendeteksi tabel nilai dari format PDF ini.")
+        if st.button("Proses Dokumen via API", type="primary"):
+            with st.spinner("Mengirim dan mengekstrak berkas di server backend..."):
+                try:
+                    files = {"file": (berkas_pdf.name, berkas_pdf.getvalue(), "application/pdf")}
+                    res = requests.post(f"{API_BASE_URL}/mahasiswa/unggah-pdf", files=files)
+                    if res.status_code == 200:
+                        st.sidebar.success(res.json().get("pesan", "Berhasil diekstraksi!"))
+                    else:
+                        st.sidebar.error(f"Error {res.status_code}: {res.json().get('detail')}")
+                except requests.exceptions.ConnectionError:
+                    st.sidebar.error("Gagal terhubung ke server FastAPI. Pastikan server aktif!")
 
     st.divider()
 
-    profil = ambil_profil()
+    # Ambil Profil dari Backend API
+    profil = None
+    try:
+        res_profil = requests.get(f"{API_BASE_URL}/mahasiswa/profil")
+        if res_profil.status_code == 200:
+            profil = res_profil.json()
+    except requests.exceptions.ConnectionError:
+        st.sidebar.warning("Server FastAPI belum menyala.")
+
     if profil:
         st.header("👤 Profil Mahasiswa")
         st.markdown(f"**Nama:**\n{profil['nama']}")
         st.markdown(f"**NPM:** `{profil['npm']}`")
         st.markdown(f"**Jurusan:** {profil['jurusan']}")
-        st.caption(f"IPK Dokumen: **{profil['ipk_cetak']}**")
+        st.caption(f"IPK Dokumen: **{profil.get('ipk_cetak', '-')}**")
     else:
-        st.info("Belum ada data mahasiswa tersimpan.")
+        st.info("Belum ada data mahasiswa tersimpan di server.")
 
     st.divider()
-    st.caption("Academic Evaluation Dashboard • v2.0 (Modular)")
+    st.caption("Academic Evaluation Dashboard • v2.0 (FastAPI Client)")
 
-
+# Main Dashboard
 st.title("🎓 Dashboard Evaluasi Akademik Mahasiswa")
-st.caption("Sistem Pemantauan Capaian Indeks Prestasi, Distribusi Nilai, dan Simulasi Kelulusan")
+st.caption("Frontend Terintegrasi dengan Backend FastAPI via REST Client")
 
 if not profil:
-    st.info(
-        "👋 Selamat datang! Silakan unggah dokumen PDF transkrip nilai melalui panel sidebar di sebelah kiri untuk memulai analisis."
-    )
+    st.info("👋 Silakan pastikan server FastAPI aktif dan unggah berkas PDF untuk memulai analisis.")
     st.stop()
 
-df_semua = ambil_data_nilai(profil["npm"])
-if df_semua.empty:
-    st.warning("Data mata kuliah belum tersedia di database.")
+# Ambil Riwayat Nilai dari Backend API
+res_nilai = requests.get(f"{API_BASE_URL}/mahasiswa/{profil['npm']}/nilai")
+if res_nilai.status_code != 200 or not res_nilai.json():
+    st.warning("Data mata kuliah belum tersedia di server.")
     st.stop()
+
+df_semua = pd.DataFrame(res_nilai.json())
 
 # Kalkulasi Metrik Global
 total_sks = int(df_semua["sks"].sum())
@@ -82,7 +92,7 @@ df_sem["ips"] = (df_sem["total_mutu"] / df_sem["total_sks"]).round(2)
 
 # Kartu Metrik
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("IPK Kumulatif", f"{ipk_hitung:.2f}", delta=f"Dokumen: {profil['ipk_cetak']}")
+c1.metric("IPK Kumulatif", f"{ipk_hitung:.2f}", delta=f"Dokumen: {profil.get('ipk_cetak', '-')}")
 c2.metric("Total SKS Tuntas", f"{total_sks} SKS")
 c3.metric("Total Mata Kuliah", f"{len(df_semua)} Matkul")
 c4.metric("Predikat Kelulusan", predikat_teks)
@@ -92,7 +102,7 @@ st.divider()
 tab_analisis, tab_filter_crud, tab_ekspor = st.tabs(
     [
         "📊 Analitik Tren & Sebaran",
-        "📋 Eksplorasi & Simulasi Nilai (CRUD)",
+        "📋 Eksplorasi & Simulasi Nilai (CRUD API)",
         "📥 Pusat Unduhan",
     ]
 )
@@ -154,7 +164,7 @@ with tab_filter_crud:
         use_container_width=True,
     )
 
-    with st.expander("🛠️ Form Simulasi Perbaikan Nilai (Semester Pendek / Perbaikan)", expanded=False):
+    with st.expander("🛠️ Form Simulasi Perbaikan Nilai (Update via REST API)", expanded=False):
         opsi_pilihan = {
             f"Sem {r['semester']} | {r['kode']} - {r['mata_kuliah']} (Nilai: {r['nilai']})": r["id"]
             for _, r in df_semua.iterrows()
@@ -171,10 +181,16 @@ with tab_filter_crud:
         with e3:
             st.write("")
             st.write("")
-            if st.button("Simpan Perubahan", type="primary"):
-                update_nilai_matkul(id_edit, nilai_baru)
-                st.success(f"Nilai {data_target['mata_kuliah']} berhasil diubah ke {nilai_baru}!")
-                st.rerun()
+            if st.button("Kirim Update Nilai ke Server", type="primary"):
+                res_update = requests.put(
+                    f"{API_BASE_URL}/nilai/{id_edit}",
+                    json={"nilai": nilai_baru},
+                )
+                if res_update.status_code == 200:
+                    st.success(f"Nilai berhasil diperbarui ke {nilai_baru}!")
+                    st.rerun()
+                else:
+                    st.error("Gagal memperbarui nilai di server backend.")
 
 with tab_ekspor:
     st.subheader("Ekspor Laporan Transkrip")
