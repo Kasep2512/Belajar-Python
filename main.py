@@ -1,5 +1,8 @@
 # Day 23 FastAPI, pydantic & endpoint CRUD
-from fastapi import FastAPI, HTTPException
+import io
+from fastapi import FastAPI, HTTPException, UploadFile, File
+from module.parser import proses_dokumen_pdf
+from module.database import simpan_hasil_ekstraksi
 from module.calculator import BOBOT_MUTU, tentukan_predikat
 from module.database import (
     ambil_data_nilai,
@@ -14,6 +17,35 @@ app = FastAPI(
     description="Backend REST API untuk pengelolaan dan evaluasi transkrip akademik mahasiswa",
     version="2.0.0",
 )
+
+
+@app.post("/mahasiswa/unggah-pdf", tags=["Mahasiswa"])
+async def unggah_transkrip_pdf(file: UploadFile = File(...)):
+    """Menerima berkas PDF transkrip, mengekstrak data, & menyimpannya ke database."""
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(
+            status_code=400,
+            detail="Format berkas tidak didukung. Harap unggah file PDF.",
+        )
+
+    konten = await file.read()
+    aliran_berkas = io.BytesIO(konten)
+
+    profil_ekstrak, nilai_ekstrak = proses_dokumen_pdf(aliran_berkas)
+
+    if not nilai_ekstrak:
+        raise HTTPException(
+            status_code=422,
+            detail="Gagal mendeteksi tabel nilai dari format dokumen PDF ini.",
+        )
+
+    simpan_hasil_ekstraksi(profil_ekstrak, nilai_ekstrak)
+
+    return {
+        "status": "success",
+        "pesan": f"Berhasil memproses dan menyimpan {len(nilai_ekstrak)} mata kuliah.",
+        "profil": profil_ekstrak,
+    }
 
 
 @app.get("/", tags=["Sistem"])
