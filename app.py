@@ -15,7 +15,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# SideBar : Upload & FastAPI
+# SIDEBAR: UPLOAD & PROFIL VIA API
 with st.sidebar:
     st.header("📂 Sumber Dokumen")
     berkas_pdf = st.file_uploader("Unggah PDF Transkrip / Rangkuman Nilai", type=["pdf"])
@@ -24,7 +24,13 @@ with st.sidebar:
         if st.button("Proses Dokumen via API", type="primary"):
             with st.spinner("Mengirim dan mengekstrak berkas di server backend..."):
                 try:
-                    files = {"file": (berkas_pdf.name, berkas_pdf.getvalue(), "application/pdf")}
+                    files = {
+                        "file": (
+                            berkas_pdf.name,
+                            berkas_pdf.getvalue(),
+                            "application/pdf",
+                        )
+                    }
                     res = requests.post(f"{API_BASE_URL}/mahasiswa/unggah-pdf", files=files)
                     if res.status_code == 200:
                         st.sidebar.success(res.json().get("pesan", "Berhasil diekstraksi!"))
@@ -56,7 +62,7 @@ with st.sidebar:
     st.divider()
     st.caption("Academic Evaluation Dashboard • v2.0 (FastAPI Client)")
 
-# Main Dashboard
+# MAIN DASHBOARD
 st.title("🎓 Dashboard Evaluasi Akademik Mahasiswa")
 st.caption("Frontend Terintegrasi dengan Backend FastAPI via REST Client")
 
@@ -83,7 +89,10 @@ df_sem = (
     df_semua.groupby("semester")
     .agg(
         total_sks=("sks", "sum"),
-        total_mutu=("sks", lambda x: (x * df_semua.loc[x.index, "bobot"]).sum()),
+        total_mutu=(
+            "sks",
+            lambda x: (x * df_semua.loc[x.index, "bobot"]).sum(),
+        ),
         jumlah_matkul=("no", "count"),
     )
     .reset_index()
@@ -92,7 +101,11 @@ df_sem["ips"] = (df_sem["total_mutu"] / df_sem["total_sks"]).round(2)
 
 # Kartu Metrik
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("IPK Kumulatif", f"{ipk_hitung:.2f}", delta=f"Dokumen: {profil.get('ipk_cetak', '-')}")
+c1.metric(
+    "IPK Kumulatif",
+    f"{ipk_hitung:.2f}",
+    delta=f"Dokumen: {profil.get('ipk_cetak', '-')}",
+)
 c2.metric("Total SKS Tuntas", f"{total_sks} SKS")
 c3.metric("Total Mata Kuliah", f"{len(df_semua)} Matkul")
 c4.metric("Predikat Kelulusan", predikat_teks)
@@ -137,7 +150,10 @@ with tab_filter_crud:
         opsi_sem = ["Semua Semester"] + sorted(df_semua["semester"].unique().tolist())
         filter_sem = st.selectbox("Filter Semester:", opsi_sem)
     with f2:
-        cari_matkul = st.text_input("🔍 Cari Mata Kuliah / Kode:", placeholder="Ketik nama atau kode mata kuliah...")
+        cari_matkul = st.text_input(
+            "🔍 Cari Mata Kuliah / Kode:",
+            placeholder="Ketik nama atau kode mata kuliah...",
+        )
 
     df_tampil = df_semua.copy()
     if filter_sem != "Semua Semester":

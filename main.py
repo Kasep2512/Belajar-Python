@@ -1,53 +1,66 @@
-# Day 23 FastAPI, pydantic & endpoint CRUD
+# main.py
 import io
-from fastapi import FastAPI, HTTPException, UploadFile, File
-from module.parser import proses_dokumen_pdf
-from module.database import simpan_hasil_ekstraksi
+import time
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
 from module.calculator import BOBOT_MUTU, tentukan_predikat
 from module.database import (
     ambil_data_nilai,
     ambil_profil,
     inisialisasi_database,
+    simpan_hasil_ekstraksi,
     update_nilai_matkul,
 )
+from module.logger import logger
+from module.parser import proses_dokumen_pdf
 from module.schemas import MataKuliahResponse, ProfilResponse, UpdateNilaiRequest
+
+inisialisasi_database()
 
 app = FastAPI(
     title="Academic Evaluation API",
     description="Backend REST API untuk pengelolaan dan evaluasi transkrip akademik mahasiswa",
-    version="2.0.0",
+    version="2.1.0",
+)
+
+# Konfigurasi CORS Middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
-@app.post("/mahasiswa/unggah-pdf", tags=["Mahasiswa"])
-async def unggah_transkrip_pdf(file: UploadFile = File(...)):
-    """Menerima berkas PDF transkrip, mengekstrak data, & menyimpannya ke database."""
-    if not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(
-            status_code=400,
-            detail="Format berkas tidak didukung. Harap unggah file PDF.",
-        )
+# Custom Logging Middleware
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    waktu_mulai = time.time()
+    response = await call_next(request)
+    durasi = (time.time() - waktu_mulai) * 1000
 
-    konten = await file.read()
-    aliran_berkas = io.BytesIO(konten)
-
-    profil_ekstrak, nilai_ekstrak = proses_dokumen_pdf(aliran_berkas)
-
-    if not nilai_ekstrak:
-        raise HTTPException(
-            status_code=422,
-            detail="Gagal mendeteksi tabel nilai dari format dokumen PDF ini.",
-        )
-
-    simpan_hasil_ekstraksi(profil_ekstrak, nilai_ekstrak)
-
-    return {
-        "status": "success",
-        "pesan": f"Berhasil memproses dan menyimpan {len(nilai_ekstrak)} mata kuliah.",
-        "profil": profil_ekstrak,
-    }
+    logger.info(f"{request.method} {request.url.path} - Status: {response.status_code} - Waktu: {durasi:.2f}ms")
+    return response
 
 
+# Global Exception Handler
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Terjadi kesalahan internal pada {request.url.path}: {str(exc)}")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "status": "error",
+            "pesan": "Terjadi kesalahan internal pada server backend.",
+            "detail": str(exc),
+        },
+    )
+
+
+# ENDPOINT REST API
 @app.get("/", tags=["Sistem"])
 def root():
     return {"pesan": "API Evaluasi Akademik Aktif!", "status": "online"}
@@ -80,7 +93,7 @@ def dapatkan_riwayat_nilai(npm: str):
 
 @app.put("/nilai/{id_matkul}", tags=["Akademik"])
 def perbarui_nilai(id_matkul: int, payload: UpdateNilaiRequest):
-    """Memperbarui nilai huruf mata kuliah (simulasi perbaikan nilai/SP)."""
+    """Memperbarui nilai huruf mata kuliah."""
     nilai_bersih = payload.nilai.upper()
     update_nilai_matkul(id_matkul, nilai_bersih)
     return {
@@ -96,3 +109,31 @@ def cek_predikat(ipk: float):
     if not (0.0 <= ipk <= 4.0):
         raise HTTPException(status_code=400, detail="Nilai IPK harus berada di rentang 0.0 - 4.0")
     return {"ipk": ipk, "predikat": tentukan_predikat(ipk)}
+
+
+@app.post("/mahasiswa/unggah-pdf", tags=["Mahasiswa"])
+async def unggah_transkrip_pdf(file: UploadFile = File(...)):
+    """Menerima berkas PDF transkrip, mengekstrak data, dan menyimpannya ke database."""
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(
+            status_code=400,
+            detail="Format berkas tidak didukung. Harap unggah file PDF.",
+        )
+
+    konten = await file.read()
+    aliran_berkas = io.BytesIO(konten)
+    profil_ekstrak, nilai_ekstrak = proses_dokumen_pdf(aliran_berkas)
+
+    if not nilai_ekstrak:
+        raise HTTPException(
+            status_code=422,
+            detail="Gagal mendeteksi tabel nilai dari format dokumen PDF ini.",
+        )
+
+    simpan_hasil_ekstraksi(profil_ekstrak, nilai_ekstrak)
+
+    return {
+        "status": "success",
+        "pesan": f"Berhasil memproses dan menyimpan {len(nilai_ekstrak)} mata kuliah.",
+        "profil": profil_ekstrak,
+    }

@@ -3,3 +3,5 @@ __pycache__/
 .pytest_cache/
 akademik.db
 venv/
+logs/
+*.log
