@@ -1,4 +1,5 @@
 # app.py - Academic Evaluation Dashboard (Client-Server Architecture)
+import os
 import pandas as pd
 import requests
 import streamlit as st
@@ -6,7 +7,9 @@ import streamlit as st
 from module.calculator import tentukan_predikat
 from module.exporter import konversi_ke_excel
 
-API_BASE_URL = "http://127.0.0.1:8000"
+API_HOST = os.getenv("API_HOST", "127.0.0.1")
+API_PORT = os.getenv("API_PORT", "8000")
+API_BASE_URL = f"http://{API_HOST}:{API_PORT}"
 
 st.set_page_config(
     page_title="Academic Evaluation Dashboard",

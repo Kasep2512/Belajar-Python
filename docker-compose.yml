@@ -1,0 +1,28 @@
+version: '3.8'
+
+servise:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: academic_backend_api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./logs:/app/logs
+      - ./academic_data.db:/app/academic_data.db
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: academic_frontend_web
+    ports:
+      - "8501:8501"
+    environment:
+      - API_HOST=api
+      - API_PORT=8000
+    depends_on:
+      - api
+    restart: unless-stopped
