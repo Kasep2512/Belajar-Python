@@ -6,16 +6,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from module.calculator import BOBOT_MUTU, tentukan_predikat
+import shutil
 from module.database import (
+    DB_PATH,
     ambil_data_nilai,
     ambil_profil,
     inisialisasi_database,
+    jalankan_seeder,
     simpan_hasil_ekstraksi,
     update_nilai_matkul,
 )
 from module.logger import logger
 from module.parser import proses_dokumen_pdf
 from module.schemas import MataKuliahResponse, ProfilResponse, UpdateNilaiRequest
+from pathlib import Path
+
+# path absolut root proyek dibagian atas
+BASE_DIR = Path(__file__).resolve().parent
 
 inisialisasi_database()
 
@@ -137,3 +144,42 @@ async def unggah_transkrip_pdf(file: UploadFile = File(...)):
         "pesan": f"Berhasil memproses dan menyimpan {len(nilai_ekstrak)} mata kuliah.",
         "profil": profil_ekstrak,
     }
+
+
+@app.post("/sistem/seed-data", tags=["Sistem"])
+def seed_sample_data():
+    """Mengisi baris data dengan data sampel pengujian (dummy)."""
+    profil, jumlah_matkul = jalankan_seeder()
+    logger.info("Data sampel pengujian berhasil dimasukkan ke baris data.")
+    return {
+        "status": "success",
+        "pesan": f"Berhasil memuat data sampel untuk {profil['nama']} ({jumlah_matkul} mata kuliah).",
+        "profil": profil,
+    }
+
+
+@app.post("/sistem/backup-db", tags=["Sistem"])
+def backup_database():
+    """Membuat salinan cadangan dari file database SQLite."""
+    sumber = BASE_DIR / "akademik.db"
+    # Pastikan folder logs tersedia
+    folder_logs = DB_PATH.parent / "logs"
+    folder_logs.mkdir(parents=True, exist_ok=True)
+
+    tujuan = folder_logs / f"backup_akademik_{int(time.time())}.db"
+
+    # Jika database belum terbentuk, jalankan inisialisasi tabel terlebih dahulu
+    if not DB_PATH.exists():
+        inisialisasi_database()
+
+    try:
+        shutil.copyfile(DB_PATH, tujuan)
+        logger.info(f"Database berhasil dicadangkan ke {tujuan.name}")
+        return {
+            "status": "success",
+            "pesan": f"Cadangan database berhasil dibuat: {tujuan.name}",
+            "path_sumber": str(DB_PATH),
+        }
+    except Exception as e:
+        logger.error(f"Gagal mencadangkan database: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Gagal mencadangkan database: {str(e)}")

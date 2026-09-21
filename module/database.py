@@ -1,11 +1,21 @@
 """Modul operasi basis data SQLite untuk profil dan riwayat nilai mahasiswa."""
 
+import sqlite3
 from pathlib import Path
 import sqlite3
 import pandas as pd
 from module.calculator import BOBOT_MUTU
 
 DB_FILE = Path("akademik.db")
+BASE_DIR = Path(__file__).resolve().parent.parent
+DB_PATH = BASE_DIR / "akademik.db"
+
+
+def buat_koneksi():
+    """Membuat koneksi ke basis data SQLite."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 
 def inisialisasi_database():
@@ -109,3 +119,167 @@ def update_nilai_matkul(id_matkul: int, nilai_baru: str):
             (nilai_baru.upper(), bobot_baru, id_matkul),
         )
         conn.commit()
+
+
+def jalankan_seeder():
+    """Mengisi database dengan data pengujian dummy multi-semester."""
+    profil_dummy = {
+        "nama": "Mahasiswa Uji Coba",
+        "npm": "12345678",
+        "jurusan": "Sistem Informasi",
+        "ipk_cetak": "3.85",
+    }
+
+    nilai_dummy = [
+        # Semester 1
+        {
+            "semester": 1,
+            "no": 1,
+            "kode": "KD-011",
+            "mata_kuliah": "Algoritma & Pemrograman 1",
+            "sks": 3,
+            "nilai": "A",
+            "bobot": 4.0,
+        },
+        {
+            "semester": 1,
+            "no": 2,
+            "kode": "KD-012",
+            "mata_kuliah": "Pengantar Sistem Informasi",
+            "sks": 3,
+            "nilai": "A",
+            "bobot": 4.0,
+        },
+        {
+            "semester": 1,
+            "no": 3,
+            "kode": "KD-013",
+            "mata_kuliah": "Matematika Diskrit",
+            "sks": 3,
+            "nilai": "B",
+            "bobot": 3.0,
+        },
+        {
+            "semester": 1,
+            "no": 4,
+            "kode": "KD-014",
+            "mata_kuliah": "Bahasa Inggris 1",
+            "sks": 2,
+            "nilai": "A",
+            "bobot": 4.0,
+        },
+        # Semester 2
+        {
+            "semester": 2,
+            "no": 1,
+            "kode": "KD-021",
+            "mata_kuliah": "Struktur Data & Algoritma",
+            "sks": 3,
+            "nilai": "A",
+            "bobot": 4.0,
+        },
+        {
+            "semester": 2,
+            "no": 2,
+            "kode": "KD-022",
+            "mata_kuliah": "Sistem Basis Data",
+            "sks": 4,
+            "nilai": "A",
+            "bobot": 4.0,
+        },
+        {
+            "semester": 2,
+            "no": 3,
+            "kode": "KD-023",
+            "mata_kuliah": "Arsitektur & Organisasi Komputer",
+            "sks": 3,
+            "nilai": "B",
+            "bobot": 3.0,
+        },
+        {
+            "semester": 2,
+            "no": 4,
+            "kode": "KD-024",
+            "mata_kuliah": "Statistika Komputasi",
+            "sks": 3,
+            "nilai": "A",
+            "bobot": 4.0,
+        },
+        # Semester 3
+        {
+            "semester": 3,
+            "no": 1,
+            "kode": "KD-031",
+            "mata_kuliah": "Pemrograman Berorientasi Objek",
+            "sks": 3,
+            "nilai": "A",
+            "bobot": 4.0,
+        },
+        {
+            "semester": 3,
+            "no": 2,
+            "kode": "KD-032",
+            "mata_kuliah": "Rekayasa Perangkat Lunak",
+            "sks": 3,
+            "nilai": "A",
+            "bobot": 4.0,
+        },
+        {
+            "semester": 3,
+            "no": 3,
+            "kode": "KD-033",
+            "mata_kuliah": "Sistem Operasi",
+            "sks": 3,
+            "nilai": "B",
+            "bobot": 3.0,
+        },
+        {
+            "semester": 3,
+            "no": 4,
+            "kode": "KD-034",
+            "mata_kuliah": "Jaringan Komputer",
+            "sks": 3,
+            "nilai": "A",
+            "bobot": 4.0,
+        },
+        # Semester 4
+        {
+            "semester": 4,
+            "no": 1,
+            "kode": "KD-041",
+            "mata_kuliah": "Analisis & Desain Sistem",
+            "sks": 3,
+            "nilai": "A",
+            "bobot": 4.0,
+        },
+        {
+            "semester": 4,
+            "no": 2,
+            "kode": "KD-042",
+            "mata_kuliah": "Administrasi Basis Data",
+            "sks": 3,
+            "nilai": "A",
+            "bobot": 4.0,
+        },
+        {
+            "semester": 4,
+            "no": 3,
+            "kode": "KD-043",
+            "mata_kuliah": "Pengembangan Aplikasi Web",
+            "sks": 3,
+            "nilai": "A",
+            "bobot": 4.0,
+        },
+        {
+            "semester": 4,
+            "no": 4,
+            "kode": "KD-044",
+            "mata_kuliah": "Metode Riset & Etika Profesi",
+            "sks": 2,
+            "nilai": "A",
+            "bobot": 4.0,
+        },
+    ]
+
+    simpan_hasil_ekstraksi(profil_dummy, nilai_dummy)
+    return profil_dummy, len(nilai_dummy)

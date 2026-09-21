@@ -18,13 +18,13 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# SIDEBAR: UPLOAD & PROFIL VIA API
+# SIDEBAR: UPLOAD, SEEDER & PROFIL VIA API
 with st.sidebar:
     st.header("📂 Sumber Dokumen")
     berkas_pdf = st.file_uploader("Unggah PDF Transkrip / Rangkuman Nilai", type=["pdf"])
 
     if berkas_pdf:
-        if st.button("Proses Dokumen via API", type="primary"):
+        if st.button("Proses Dokumen via API", type="primary", width="stretch"):
             with st.spinner("Mengirim dan mengekstrak berkas di server backend..."):
                 try:
                     files = {
@@ -37,10 +37,23 @@ with st.sidebar:
                     res = requests.post(f"{API_BASE_URL}/mahasiswa/unggah-pdf", files=files)
                     if res.status_code == 200:
                         st.sidebar.success(res.json().get("pesan", "Berhasil diekstraksi!"))
+                        st.rerun()
                     else:
                         st.sidebar.error(f"Error {res.status_code}: {res.json().get('detail')}")
                 except requests.exceptions.ConnectionError:
                     st.sidebar.error("Gagal terhubung ke server FastAPI. Pastikan server aktif!")
+
+    if st.button("🧪 Muat Data Sampel (Demo Mode)", width="stretch"):
+        with st.spinner("Menghubungi server untuk memuat data sampel..."):
+            try:
+                res_seed = requests.post(f"{API_BASE_URL}/sistem/seed-data")
+                if res_seed.status_code == 200:
+                    st.sidebar.success("Data sampel berhasil dimuat!")
+                    st.rerun()
+                else:
+                    st.sidebar.error("Gagal memuat data sampel dari server.")
+            except requests.exceptions.ConnectionError:
+                st.sidebar.error("Server backend FastAPI belum aktif.")
 
     st.divider()
 
@@ -70,7 +83,7 @@ st.title("🎓 Dashboard Evaluasi Akademik Mahasiswa")
 st.caption("Frontend Terintegrasi dengan Backend FastAPI via REST Client")
 
 if not profil:
-    st.info("👋 Silakan pastikan server FastAPI aktif dan unggah berkas PDF untuk memulai analisis.")
+    st.info("👋 Silakan pastikan server FastAPI aktif dan unggah berkas PDF atau klik Muat Data Sampel.")
     st.stop()
 
 # Ambil Riwayat Nilai dari Backend API
@@ -129,7 +142,7 @@ with tab_analisis:
         st.markdown("**Tren Fluktuasi IPS Antarsemester**")
         df_line = df_sem[["semester", "ips"]].copy()
         df_line["Label"] = "Semester " + df_line["semester"].astype(str)
-        st.line_chart(df_line.set_index("Label")[["ips"]], use_container_width=True)
+        st.line_chart(df_line.set_index("Label")[["ips"]], width="stretch")
 
     with col_g2:
         st.markdown("**Ringkasan Beban & Indeks Prestasi**")
@@ -141,7 +154,7 @@ with tab_analisis:
                 "ips": "IPS",
             },
             hide_index=True,
-            use_container_width=True,
+            width="stretch",
         )
 
     st.markdown("**Distribusi Mutu Nilai**")
@@ -180,7 +193,7 @@ with tab_filter_crud:
             "bobot": "Bobot",
         },
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
     )
 
     with st.expander("🛠️ Form Simulasi Perbaikan Nilai (Update via REST API)", expanded=False):
