@@ -128,10 +128,11 @@ c4.metric("Predikat Kelulusan", predikat_teks)
 
 st.divider()
 
-tab_analisis, tab_filter_crud, tab_ekspor = st.tabs(
+tab_analisis, tab_filter_crud, tab_simulasi, tab_ekspor = st.tabs(
     [
         "📊 Analitik Tren & Sebaran",
         "📋 Eksplorasi & Simulasi Nilai (CRUD API)",
+        "🎯 Perencana Target IPK (What-If)",
         "📥 Pusat Unduhan",
     ]
 )
@@ -223,6 +224,60 @@ with tab_filter_crud:
                     st.rerun()
                 else:
                     st.error("Gagal memperbarui nilai di server backend.")
+
+    with tab_simulasi:
+        st.subheader("🎯 Simulasi & Perencana Target IPK")
+        st.write("Hitung berapa IPS yang harus kamu raih di semester depan untuk mencapai IPK impian.")
+
+        col_s1, col_s2 = st.columns(2)
+        with col_s1:
+            st.info(f"Status Saat Ini:\n* **Total SKS Tuntas:** {total_sks} SKS\n* **IPK Riil:** {ipk_hitung:.2f}")
+            rencana_sks = st.number_input(
+                "Beban SKS Semester Depan:",
+                min_value=1,
+                max_value=24,
+                value=20,
+                step=1,
+            )
+            target_ipk_input = st.slider(
+                "Target IPK Kelulusan / Akhir:",
+                min_value=round(float(ipk_hitung), 2),
+                max_value=4.00,
+                value=min(4.00, round(float(ipk_hitung) + 0.1, 2)),
+                step=0.01,
+            )
+
+            tombol_hitung = st.button("Hitung Kebutuhan IPS", type="primary", width="stretch")
+
+    with col_s2:
+        if tombol_hitung:
+            payload_simulasi = {
+                "sks_lalu": total_sks,
+                "ipk_lalu": ipk_hitung,
+                "sks_rencana": rencana_sks,
+                "target_ipk": target_ipk_input,
+            }
+            try:
+                res_sim = requests.post(
+                    f"{API_BASE_URL}/kalkulator/target-ipk",
+                    json=payload_simulasi,
+                )
+                if res_sim.status_code == 200:
+                    data_sim = res_sim.json()
+                    ips_butuh = data_sim["ips_dibutuhkan"]
+
+                    if data_sim["tercapai"]:
+                        st.success(f"### Target IPS Dibutuhkan: **{ips_butuh:.2f}**")
+                        st.write(f"ℹ️ {data_sim['catatan']}")
+                    else:
+                        st.error(f"### Target IPS Dibutuhkan: **{ips_butuh:.2f}**")
+                        st.warning(
+                            "⚠️ Target tidak memungkinkan hanya dalam 1 semester ke depan karena melampaui batas maksimal IPS (4.00). Pertimbangkan menambah semester atau menyesuaikan target."
+                        )
+                else:
+                    st.error(f"Error: {res_sim.json().get('detail', 'Gagal memproses perhitungan.')}")
+            except requests.exceptions.ConnectionError:
+                st.error("Server FastAPI belum menyala.")
 
 with tab_ekspor:
     st.subheader("Ekspor Laporan Transkrip")

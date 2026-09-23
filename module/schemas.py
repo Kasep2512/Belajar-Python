@@ -36,3 +36,17 @@ class ProfilResponse(BaseModel):
     nama: str
     jurusan: str
     ipk_cetak: Optional[str] = None
+
+
+class TargetIPKRequest(BaseModel):
+    sks_lalu: int = Field(..., ge=0, description="Total SKS yang sudah diselesaikan")
+    ipk_lalu: float = Field(..., ge=0.0, le=4.0, description="IPK saat ini")
+    sks_rencana: int = Field(..., gt=0, description="Rencana SKS di semester berikutnya")
+    target_ipk: float = Field(..., ge=0.0, le=4.0, description="Target IPK yang ingin diraih")
+
+
+class TargetIPKResponse(BaseModel):
+    sks_total_nanti: int
+    ips_dibutuhkan: float
+    tercapai: bool
+    catatan: str

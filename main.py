@@ -5,7 +5,14 @@ from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from module.calculator import BOBOT_MUTU, tentukan_predikat
+from module.calculator import BOBOT_MUTU, hitung_target_ips, tentukan_predikat
+from module.schemas import (
+    MataKuliahResponse,
+    ProfilResponse,
+    TargetIPKRequest,
+    TargetIPKResponse,
+    UpdateNilaiRequest,
+)
 import shutil
 from module.database import (
     DB_PATH,
@@ -116,6 +123,25 @@ def cek_predikat(ipk: float):
     if not (0.0 <= ipk <= 4.0):
         raise HTTPException(status_code=400, detail="Nilai IPK harus berada di rentang 0.0 - 4.0")
     return {"ipk": ipk, "predikat": tentukan_predikat(ipk)}
+
+
+@app.post(
+    "/kalkulator/target-ipk",
+    response_model=TargetIPKResponse,
+    tags=["Kalkulator"],
+)
+def simulasikan_target_ipk(payload: TargetIPKRequest):
+    """Menghitung kebutuhan IPS semester berikutnya untuk mencapai target IPK."""
+    try:
+        hasil = hitung_target_ips(
+            sks_lalu=payload.sks_lalu,
+            ipk_lalu=payload.ipk_lalu,
+            sks_rencana=payload.sks_rencana,
+            target_ipk=payload.target_ipk,
+        )
+        return hasil
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.post("/mahasiswa/unggah-pdf", tags=["Mahasiswa"])

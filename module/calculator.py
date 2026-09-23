@@ -33,3 +33,42 @@ def tentukan_predikat(ipk: float) -> str:
     elif ipk >= 2.75:
         return "Memuaskan 👍"
     return "Cukup ⚠️"
+
+
+def hitung_target_ips(sks_lalu: int, ipk_lalu: float, sks_rencana: int, target_ipk: float) -> dict:
+    """Menghitung IPS yang dibutuhkan untuk mencapai target IPK tertentu.
+
+    Rumus: target_mutu_total = (sks_lalu + sks_rencana) * target_ipk
+            mutu_lalu = sks_lalu * ipk_lalu
+            ips_dibutuhkan = (target_mutu_total - mutu_lalu) / sks_rencana
+    """
+    if sks_rencana <= 0:
+        raise ValueError("SKS rencana semester depan harus lebih dari 0.")
+    if not (0.0 <= target_ipk <= 4.0):
+        raise ValueError("Target IPK harus berada pada rentang 0.0 - 4.0.")
+
+    mutu_lalu = sks_lalu * ipk_lalu
+    sks_total_akhir = sks_lalu + sks_rencana
+    mutu_total_target = sks_total_akhir * target_ipk
+
+    mutu_dibutuhkan = mutu_total_target - mutu_lalu
+    ips_dibutuhkan = round(mutu_dibutuhkan / sks_rencana, 2)
+
+    # Evaluasi secara matematis (maksimal IPS adalah 4.00)
+    tercapai = ips_dibutuhkan <= 4.00
+    bisa_santai = ips_dibutuhkan <= 0.00  # Target sudah terlampaui
+
+    return {
+        "sks_total_nanti": sks_total_akhir,
+        "ips_dibutuhkan": max(0.00, ips_dibutuhkan),
+        "tercapai": tercapai,
+        "catatan": (
+            "Target realistis untuk dicapai."
+            if tercapai and not bisa_santai
+            else (
+                "Target IPK sudah terlampaui bahkan tanpa nilai tambahan."
+                if bisa_santai
+                else "Target tidak memungkinkan secara matematis (butuh IPS > 4.00)."
+            )
+        ),
+    }
